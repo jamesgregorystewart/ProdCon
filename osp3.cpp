@@ -11,7 +11,7 @@ using namespace std;
 //Functions
 void setProgramSpecs();
 void *fillBuffer(void *ptr);
-
+bool isIntegerPrime(int toTest);
 
 //Global Variables
 int** buffer;
@@ -86,7 +86,6 @@ void setProgramSpecs() {
   }
 }
 
-
 void *fillBuffer(void *ptr) {
   int randomNumber;
 
@@ -96,5 +95,23 @@ void *fillBuffer(void *ptr) {
     randomNumber = rand() % 999999 + 2;
     pthread_mutex_unlock( &random_mutex );
   }
+}
 
+bool isIntegerPrime(int toTest){
+  // Function to test the primality of a number.
+  // Reference: http://www.codeproject.com/Articles/465041/Primality-Test
+
+  // If less than 2, the number cannot be prime.
+  if(toTest < 2) return false;
+  if(toTest == 2) return true;
+
+  // Even numbers cannot be prime
+  if(toTest % 2 == 0) return false;
+
+  for(int i=3;i<=sqrt(number);i += 2){
+        if(number%i==0)
+            return false;
+    }
+
+    return true;
 }
