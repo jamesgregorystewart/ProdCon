@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <cstdlib>
 #include <mutex>
+#include <math.h>
 
 using namespace std;
 
@@ -108,8 +109,8 @@ bool isIntegerPrime(int toTest){
   // Even numbers cannot be prime
   if(toTest % 2 == 0) return false;
 
-  for(int i=3;i<=sqrt(number);i += 2){
-        if(number%i==0)
+  for(int i=3;i<=sqrt(toTest);i += 2){
+        if(toTest %i == 0)
             return false;
     }
 
