@@ -1,7 +1,7 @@
 ###########################################################
 #
-# Simple Makefile for Operating Systems Project 1
-# faulty
+# Simple Makefile for Operating Systems Project 3
+# osp3
 #
 ###########################################################
 .SUFFIXES: .h .c .cpp .l .o
@@ -14,11 +14,11 @@ LIBS = -ll		#lfl on linux
 RM = /bin/rm
 RMOPTS = -f
 
-faulty: faulty.o
-	$(CPP) $(CPPOPTS) faulty.o -o faulty
+osp3: osp3.o
+	$(CPP) $(CPPOPTS) osp3.o -o osp3
 
-faulty.o: faulty.cpp
-	 $(CPP) $(CPPOPTS) -c faulty.cpp
+osp3.o: osp3.cpp
+	 $(CPP) $(CPPOPTS) -c osp3.cpp
 
 clean:
-	$(RM) $(RMOPTS) *.o *~ core faulty
+	$(RM) $(RMOPTS) *.o *~ core osp3
