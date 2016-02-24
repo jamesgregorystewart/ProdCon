@@ -33,6 +33,9 @@ int main(int argc, char const *argv[]) {
 
   //get the flags and values from execution input
   setProgramSpecs();
+  pthread_t producers[numberOfProducers];
+  pthread_t faultiers[numberOfFaulties];
+  pthread_t consumers[numberOfConsumers];
 
   //initialize buffer here
 
@@ -40,13 +43,18 @@ int main(int argc, char const *argv[]) {
   printf("\n");
 
   //create producer threads
+  int jj;
   for (int jj = 0; jj < numberOfProducers; jj++) {
-    //pthread_create(&someName, NULL, *fillBuffer, NULL);
+    pthread_create(&producers[jj], NULL, *fillBuffer, new int(jj));
   }
 
   //Create faulty producer threads
-  for (int jj = 0; jj < numberOfFaulties; jj++) {
-    //create threads in loop
+  for (int jj = numberOfProducers; jj < numberOfFaulties + numberOfProducers; jj++) {
+    pthread_create(&faulties[jj], NULL, *fillBuffer, new int(jj));
+  }
+
+  for(int jj = numberOfProducers + numberOfFaulties; jj < numberOfConsumers + numberOfFaulties + numberOfProducers; j++) {
+    pthread_create(&consumers[jj], NULL, *fillBuffer, new int(jj));
   }
 
   //Join threads
@@ -89,6 +97,8 @@ void setProgramSpecs() {
 
 void *fillBuffer(void *ptr) {
   int randomNumber;
+  int id = *(int*)ptr;      //cast the int object into an id
+  delete (int*)ptr;         //delete the int object like I read online
 
   //use mutex to make sure only one producer is working at a time.
   while(true) {
