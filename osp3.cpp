@@ -50,15 +50,14 @@ int main(int argc, char const *argv[]) {
 
   //Create faulty producer threads
   for (int jj = numberOfProducers; jj < numberOfFaulties + numberOfProducers; jj++) {
-    pthread_create(&faulties[jj], NULL, *fillBuffer, new int(jj));
+    pthread_create(&faultiers[jj], NULL, *fillBuffer, new int(jj));
   }
 
-  for(int jj = numberOfProducers + numberOfFaulties; jj < numberOfConsumers + numberOfFaulties + numberOfProducers; j++) {
+  for(int jj = numberOfProducers + numberOfFaulties; jj < numberOfConsumers + numberOfFaulties + numberOfProducers; jj++) {
     pthread_create(&consumers[jj], NULL, *fillBuffer, new int(jj));
   }
 
   //Join threads
-  //
 
   return 0;
 }
@@ -119,7 +118,7 @@ bool isIntegerPrime(int toTest){
   // Even numbers cannot be prime
   if(toTest % 2 == 0) return false;
 
-  for(int i=3;i<=sqrt(toTest);i += 2){
+  for(int i = 3; i <= sqrt(toTest); i += 2){
         if(toTest %i == 0)
             return false;
     }
