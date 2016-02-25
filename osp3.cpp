@@ -57,7 +57,20 @@ int main(int argc, char const *argv[]) {
     pthread_create(&consumers[jj], NULL, *fillBuffer, new int(jj));
   }
 
-  //Join threads
+  // Join with producer threads
+  for(jj = 0; jj < numberOfProducers; jj++){
+    pthread_join(producers[jj], NULL);
+  }
+
+  // Join with faulty producers
+  for(jj = 0; jj < numberOfFaulties; jj++){
+    pthread_join(faultiers[jj], NULL);
+  }
+
+  // Join with consumers
+  for(jj = 0; jj < numberOfFaulties; jj++){
+    pthread_join(consumers[jj], NULL);
+  }
 
   return 0;
 }
