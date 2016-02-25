@@ -6,6 +6,7 @@
 #include <cstdlib>
 #include <mutex>
 #include <math.h>
+#include <queue>
 
 using namespace std;
 
@@ -20,18 +21,98 @@ void *faultyProducerFunction(void *ptr);
 void *consumerFunction(void *ptr);
 void *fillBuffer(void *ptr);
 
+pthread_mutex_t random_mutex;
 
-//Global Variables
-int** buffer;
+
+//*******************************************************************
+//
+//                      Custom Buffer class
+//
+//    Wrapped around the STL Queue class to provide a max size for the
+//    queue.
+//
+//*******************************************************************/
+class CustomBuffer: public std::queue<int> {
+  public:
+    // Public functions
+    CustomBuffer(){
+      // Constructor...initialize variables
+      size = 0;
+      currentNumberOfEntries = 0;
+    }
+
+    void setMaxSize(int newSize){
+      printf("Setting max size to %i...\n", newSize);
+       size = newSize;
+    }
+
+    bool bufferIsFull(){
+      //printf("Checking if the buffer is full. Entries: %i Size: %i.\n", currentNumberOfEntries, size);
+      if(currentNumberOfEntries >= size){
+        return true;
+      } else {
+        return false;
+      }
+    }
+
+    bool bufferIsEmpty(){
+      if(currentNumberOfEntries == 0){
+        return true;
+      } else {
+        return false;
+      }
+    }
+
+    void addItem(int item){
+      // If the buffer is not full, then use mutex locks to add to buffer
+      if(!bufferIsFull()){
+        // Obtain lock
+        printf("Trying to obtain lock...\n");
+        pthread_mutex_lock( &random_mutex );
+        printf("In critical section...\n");
+        buffer.push(item);
+        printf("Trying to release lock...\n");
+        pthread_mutex_unlock( &random_mutex );
+        printf("Lock released\n");
+      } else {
+        cout << "Error adding item: buffer full!\n";
+      }
+    }
+
+    int removeItem(){
+      if(!bufferIsEmpty()){
+
+        pthread_mutex_lock( &random_mutex );
+        int poppedItem = buffer.front();
+        buffer.pop();
+        pthread_mutex_unlock( &random_mutex );
+
+        return poppedItem;
+      } else {
+        cout << "Error removing item: buffer empty!\n";
+        return -1;
+      }
+    }
+
+  protected:
+    int size;
+    int currentNumberOfEntries;
+    std::queue<int> buffer;
+};
+
+// ************************** Global Variables **************************
+CustomBuffer buffer;
 int bufferLength;
 const char** gargv;
 int gargc;
+
 int itemsPerProducer;
 int numberOfProducers;
 int numberOfFaulties;
 int numberOfConsumers;
+int totalNumberOfItems;
+
 bool showDebug = false;
-pthread_mutex_t random_mutex;
 
 
 int main(int argc, char const *argv[]) {
@@ -40,11 +121,12 @@ int main(int argc, char const *argv[]) {
 
   //get the flags and values from execution input
   setProgramSpecs();
+  buffer.setMaxSize(bufferLength);
   pthread_t producers[numberOfProducers];
   pthread_t faultiers[numberOfFaulties];
   pthread_t consumers[numberOfConsumers];
 
-  //initialize buffer here
+  totalNumberOfItems = itemsPerProducer * (numberOfProducers + numberOfFaulties);
 
   cout << "Starting Threads..." << endl;
   printf("\n");
@@ -97,6 +179,7 @@ void setProgramSpecs() {
       ii++;
     } else if (strcmp(gargv[ii], "-l") == 0) {
       bufferLength = atoi(gargv[ii+1]);
+      printf("Buffer length: %i\n", bufferLength);
       ii++;
     } else if (strcmp(gargv[ii], "-p") == 0) {
       numberOfProducers = atoi(gargv[ii+1]);
@@ -122,21 +205,66 @@ void setProgramSpecs() {
 //*******************************************************************/
 
 void *producerFunction(void *ptr){
-  int primeNumber = getPrimeNumber();
+  printf("Hello from Producer function\n");
 
-  // TODO: Add to buffer when possible
+  // Create and add the correct number of items to
+  // the buffer.
+  for(int ii = 0; ii < itemsPerProducer; ii++){
+    printf("In prod loop\n");
 
-  // Exit thread
+    // Generate prime number
+    int primeNumber = getPrimeNumber();
+
+    // Add to buffer when possible
+    bool done = false;
+    while(!done){
+      // Busy wait for when buffer is not full
+
+      // If the buffer is not full...
+      if(!buffer.bufferIsFull()){
+        // Add the prime number to the buffer
+        // (buffer handles the mutexes for us)
+        buffer.addItem(primeNumber);
+        done = true;
+      } else {
+        done = false;
+      }
+    }
+  }
+  // We have now done our work. Exit thread.
   pthread_exit(0);
 }
 
 void *faultyProducerFunction(void *ptr){
-  int number = rand() % 999999;
 
-  // TODO: Add to buffer when possible
+  printf("Hello from faulty consumer function\n");
 
-  // Exit thread
+  // Create and add the correct number of items to
+  // the buffer.
+  for(int ii = 0; ii < itemsPerProducer; ii++){
+
+    // Generate number
+    int number = rand() % 999999;
+
+    // Add to buffer when possible
+    bool done = false;
+    while(!done){
+      // Busy wait for when buffer is not full
+
+      // If the buffer is not full...
+      if(!buffer.bufferIsFull()){
+        // Add the number to the buffer
+        // (buffer handles the mutexes for us)
+        buffer.addItem(number);
+        done = true;
+      } else {
+        done = false;
+      }
+    }
+  }
+  // We have now done our work. Exit thread.
   pthread_exit(0);
+
 }
 
 int getPrimeNumber(){
@@ -162,17 +290,40 @@ int getPrimeNumber(){
 //*******************************************************************/
 
 void *consumerFunction(void *ptr){
+  // TODO: PROBLEM!!! This will probably only work for 1 consumer thread. Needs to be modified.
   int newItem = -1;
 
-  // TODO: Retreive item from buffer
+  printf("Hello from consumer function\n");
 
-  bool isPrime = isIntegerPrime(newItem);
+  // Read in the correct number of items from buffer.
+  for(int ii = 0; ii < totalNumberOfItems; ii++){
 
-  if(isPrime){
-    // TODO: Output for case int is prime
-  } else {
-    // TODO: Output for case int is composite
-  }
+    bool done = false;
+    while(!done){
+
+      // If the buffer is not empty, read and process
+      if(!buffer.bufferIsEmpty()){
+
+        int item = buffer.removeItem();
+        bool isPrime = isIntegerPrime(newItem);
+
+        if(isPrime){
+          printf("Consumer thread: %i is prime!\n", item);
+        } else {
+          printf("Consumer thread: %i is not prime.\n", item);
+        }
+
+      } else {
+        done = false;
+      }
+
+    }
+
+  } // End for loop
+
+
+
+
 
   pthread_exit(0);
 }
