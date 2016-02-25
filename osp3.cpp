@@ -11,8 +11,15 @@ using namespace std;
 
 //Functions
 void setProgramSpecs();
-void *fillBuffer(void *ptr);
+
 bool isIntegerPrime(int toTest);
+int getPrimeNumber();
+
+void *producerFunction(void *ptr);
+void *faultyProducerFunction(void *ptr);
+void *consumerFunction(void *ptr);
+void *fillBuffer(void *ptr);
+
 
 //Global Variables
 int** buffer;
@@ -42,19 +49,20 @@ int main(int argc, char const *argv[]) {
   cout << "Starting Threads..." << endl;
   printf("\n");
 
-  //create producer threads
+  // Create producer threads
   int jj;
   for (int jj = 0; jj < numberOfProducers; jj++) {
-    pthread_create(&producers[jj], NULL, *fillBuffer, new int(jj));
+    pthread_create(&producers[jj], NULL, *producerFunction, new int(jj));
   }
 
-  //Create faulty producer threads
+  // Create faulty producer threads
   for (int jj = numberOfProducers; jj < numberOfFaulties + numberOfProducers; jj++) {
-    pthread_create(&faultiers[jj], NULL, *fillBuffer, new int(jj));
+    pthread_create(&faultiers[jj], NULL, *faultyProducerFunction, new int(jj));
   }
 
+  // Create consumers
   for(int jj = numberOfProducers + numberOfFaulties; jj < numberOfConsumers + numberOfFaulties + numberOfProducers; jj++) {
-    pthread_create(&consumers[jj], NULL, *fillBuffer, new int(jj));
+    pthread_create(&consumers[jj], NULL, *consumerFunction, new int(jj));
   }
 
   // Join with producer threads
@@ -107,6 +115,68 @@ void setProgramSpecs() {
   }
 }
 
+//*******************************************************************
+//
+//                      Producer Functions
+//
+//*******************************************************************/
+
+void *producerFunction(void *ptr){
+  int primeNumber = getPrimeNumber();
+
+  // TODO: Add to buffer when possible
+
+  // Exit thread
+  pthread_exit(0);
+}
+
+void *faultyProducerFunction(void *ptr){
+  int number = rand() % 999999;
+
+  // TODO: Add to buffer when possible
+
+  // Exit thread
+  pthread_exit(0);
+}
+
+int getPrimeNumber(){
+  // Returns a prime number
+  bool done = false;
+  int result = -1;
+
+  while(!done){
+    // Generate a random positive integer
+    result = rand() % 999999;
+
+    // If this int is prime, we are done
+    done = isIntegerPrime(result);
+  }
+
+  return result;
+}
+
+//*******************************************************************
+//
+//                      Consumer Functions
+//
+//*******************************************************************/
+
+void *consumerFunction(void *ptr){
+  int newItem = -1;
+
+  // TODO: Retreive item from buffer
+
+  bool isPrime = isIntegerPrime(newItem);
+
+  if(isPrime){
+    // TODO: Output for case int is prime
+  } else {
+    // TODO: Output for case int is composite
+  }
+
+  pthread_exit(0);
+}
+
 void *fillBuffer(void *ptr) {
   int randomNumber;
   int id = *(int*)ptr;      //cast the int object into an id
@@ -118,6 +188,8 @@ void *fillBuffer(void *ptr) {
     randomNumber = rand() % 999999 + 2;
     pthread_mutex_unlock( &random_mutex );
   }
+
+  pthread_exit(0);
 }
 
 bool isIntegerPrime(int toTest){
