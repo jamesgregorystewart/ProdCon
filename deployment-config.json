@@ -1,9 +1,0 @@
-{
-    "type": "sftp",
-    "host": "thompson.cs.tcu.edu",
-    "username": "jstewart",
-    "password": "110028393",
-    "port": 22,
-    "remotePath": "ProdCon",
-    "uploadOnSave": false
-}
