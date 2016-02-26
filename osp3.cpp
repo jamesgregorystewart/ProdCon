@@ -42,6 +42,7 @@ class CustomBuffer: public std::queue<int> {
     }
 
     void setMaxSize(int newSize){
+      // Set the max size of the queue
       printf("Setting max size to %i...\n", newSize);
        size = newSize;
     }
@@ -208,12 +209,10 @@ void setProgramSpecs() {
 //*******************************************************************/
 
 void *producerFunction(void *ptr){
-  printf("Hello from Producer function\n");
 
   // Create and add the correct number of items to
   // the buffer.
   for(int ii = 0; ii < itemsPerProducer; ii++){
-    printf("In prod loop\n");
 
     // Generate prime number
     int primeNumber = getPrimeNumber();
@@ -239,8 +238,6 @@ void *producerFunction(void *ptr){
 }
 
 void *faultyProducerFunction(void *ptr){
-
-  printf("Hello from faulty consumer function\n");
 
   // Create and add the correct number of items to
   // the buffer.
