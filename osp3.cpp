@@ -14,6 +14,7 @@ using namespace std;
 void setProgramSpecs();
 
 bool isIntegerPrime(int toTest);
+bool isIntegerEven(int toTest);
 int getPrimeNumber();
 
 void *producerFunction(void *ptr);
@@ -285,8 +286,21 @@ void *faultyProducerFunction(void *ptr){
   // the buffer.
   for(int ii = 0; ii < itemsPerProducer; ii++){
 
+    int number;
+
     // Generate number
-    int number = rand() % 999999;
+    bool doneMakingNumber = false;
+    while(!doneMakingNumber){
+      number = rand() % 999999;
+
+      if(isIntegerEven(number)){
+        doneMakingNumber = true;
+      } else {
+        doneMakingNumber = false;
+      }
+
+    }
+
 
     // Add to buffer when possible
     bool done = false;
@@ -298,6 +312,11 @@ void *faultyProducerFunction(void *ptr){
         // Add the number to the buffer
         // (buffer handles the mutexes for us)
         buffer.addItem(number);
+
+        // Now print that we have added it
+        printf("PR*D*C*R %i writes %i/%i   %i: ", id, (ii + 1) , itemsPerProducer, number);
+        buffer.printBuffer();
+
         done = true;
       } else {
         done = false;
@@ -368,10 +387,6 @@ void *consumerFunction(void *ptr){
 
   } // End for loop
 
-
-
-
-
   pthread_exit(0);
 }
 
@@ -407,4 +422,12 @@ bool isIntegerPrime(int toTest){
     }
 
     return true;
+}
+
+bool isIntegerEven(int toTest){
+  if(toTest % 2 == 0){
+    return true;
+  } else {
+    return false;
+  }
 }
