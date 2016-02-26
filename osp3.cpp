@@ -21,7 +21,7 @@ void *faultyProducerFunction(void *ptr);
 void *consumerFunction(void *ptr);
 void *fillBuffer(void *ptr);
 
-pthread_mutex_t random_mutex;
+pthread_mutex_t buffer_mutex;
 
 
 //*******************************************************************
@@ -68,11 +68,11 @@ class CustomBuffer: public std::queue<int> {
       if(!bufferIsFull()){
         // Obtain lock
         printf("Trying to obtain lock...\n");
-        pthread_mutex_lock( &random_mutex );
+        pthread_mutex_lock( &buffer_mutex );
         printf("In critical section...\n");
         buffer.push(item);
         printf("Trying to release lock...\n");
-        pthread_mutex_unlock( &random_mutex );
+        pthread_mutex_unlock( &buffer_mutex );
         printf("Lock released\n");
       } else {
         cout << "Error adding item: buffer full!\n";
@@ -82,10 +82,10 @@ class CustomBuffer: public std::queue<int> {
     int removeItem(){
       if(!bufferIsEmpty()){
 
-        pthread_mutex_lock( &random_mutex );
+        pthread_mutex_lock( &buffer_mutex );
         int poppedItem = buffer.front();
         buffer.pop();
-        pthread_mutex_unlock( &random_mutex );
+        pthread_mutex_unlock( &buffer_mutex );
 
         return poppedItem;
       } else {
@@ -127,6 +127,9 @@ int main(int argc, char const *argv[]) {
   pthread_t consumers[numberOfConsumers];
 
   totalNumberOfItems = itemsPerProducer * (numberOfProducers + numberOfFaulties);
+
+  // Initialize mutex
+  pthread_mutex_init(&buffer_mutex, NULL);
 
   cout << "Starting Threads..." << endl;
   printf("\n");
@@ -335,9 +338,9 @@ void *fillBuffer(void *ptr) {
 
   //use mutex to make sure only one producer is working at a time.
   while(true) {
-    pthread_mutex_lock( &random_mutex );
+    pthread_mutex_lock( &buffer_mutex );
     randomNumber = rand() % 999999 + 2;
-    pthread_mutex_unlock( &random_mutex );
+    pthread_mutex_unlock( &buffer_mutex );
   }
 
   pthread_exit(0);
