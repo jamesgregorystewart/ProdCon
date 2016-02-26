@@ -64,17 +64,44 @@ class CustomBuffer: public std::queue<int> {
       }
     }
 
+    int getNumberOfItemsInBuffer(){
+      return currentNumberOfEntries;
+    }
+
+    void printBuffer(){
+
+      printf("(%i): [ ", currentNumberOfEntries);
+
+      // Obtain mutex so queue doesn't change while we print it out
+      //pthread_mutex_lock( &buffer_mutex );
+
+      for(int ii = 0; ii < currentNumberOfEntries; ii++){
+        int temp = buffer.front();
+        buffer.pop();
+
+        printf(" %i ", temp);
+
+        buffer.push(temp);
+      }
+
+      // Release mutex
+      //pthread_mutex_unlock( &buffer_mutex );
+
+      printf("]\n");
+    }
+
     void addItem(int item){
       // If the buffer is not full, then use mutex locks to add to buffer
       if(!bufferIsFull()){
         // Obtain lock
-        printf("Trying to obtain lock...\n");
         pthread_mutex_lock( &buffer_mutex );
-        printf("In critical section...\n");
+
+        // Critical section
         buffer.push(item);
-        printf("Trying to release lock...\n");
+        currentNumberOfEntries++;
+
+        // Release lock
         pthread_mutex_unlock( &buffer_mutex );
-        printf("Lock released\n");
       } else {
         cout << "Error adding item: buffer full!\n";
       }
@@ -210,6 +237,10 @@ void setProgramSpecs() {
 
 void *producerFunction(void *ptr){
 
+  // Get ID
+  int id = *(int*)ptr;      //cast the int object into an id
+  delete (int*)ptr;         //delete the int object like I read online
+
   // Create and add the correct number of items to
   // the buffer.
   for(int ii = 0; ii < itemsPerProducer; ii++){
@@ -227,6 +258,11 @@ void *producerFunction(void *ptr){
         // Add the prime number to the buffer
         // (buffer handles the mutexes for us)
         buffer.addItem(primeNumber);
+
+        // Now print that we have added it
+        printf("PRODUCER %i writes %i/%i   %i: ", id, (ii + 1) , itemsPerProducer, primeNumber);
+        buffer.printBuffer();
+
         done = true;
       } else {
         done = false;
@@ -238,6 +274,12 @@ void *producerFunction(void *ptr){
 }
 
 void *faultyProducerFunction(void *ptr){
+
+  // Get ID
+  int id = *(int*)ptr;      //cast the int object into an id
+  delete (int*)ptr;         //delete the int object like I read online
+
+  id = id - numberOfProducers;
 
   // Create and add the correct number of items to
   // the buffer.
@@ -290,10 +332,15 @@ int getPrimeNumber(){
 //*******************************************************************/
 
 void *consumerFunction(void *ptr){
+
+  // Get ID
+  int id = *(int*)ptr;      //cast the int object into an id
+  delete (int*)ptr;         //delete the int object like I read online
+
+  id = id - (numberOfProducers + numberOfFaulties);
+
   // TODO: PROBLEM!!! This will probably only work for 1 consumer thread. Needs to be modified.
   int newItem = -1;
-
-  printf("Hello from consumer function\n");
 
   // Read in the correct number of items from buffer.
   for(int ii = 0; ii < totalNumberOfItems; ii++){
