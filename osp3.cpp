@@ -7,6 +7,8 @@
 #include <mutex>
 #include <math.h>
 #include <queue>
+#include <string.h>
+#include <sstream>
 
 using namespace std;
 
@@ -23,7 +25,7 @@ void *consumerFunction(void *ptr);
 void *fillBuffer(void *ptr);
 
 pthread_mutex_t buffer_mutex;
-
+pthread_mutex_t print_mutex;
 
 //*******************************************************************
 //
@@ -69,26 +71,40 @@ class CustomBuffer: public std::queue<int> {
       return currentNumberOfEntries;
     }
 
-    void printBuffer(){
+    string printBuffer(){
 
-      printf("(%i): [ ", currentNumberOfEntries);
+      string temp = "";
+
+      //temp = sprintf("(%i): [ ", currentNumberOfEntries);
+
+      ostringstream os;
+      os << "(" << currentNumberOfEntries << "): [ ";
 
       // Obtain mutex so queue doesn't change while we print it out
       //pthread_mutex_lock( &buffer_mutex );
+
+      pthread_mutex_lock( &buffer_mutex );
 
       for(int ii = 0; ii < currentNumberOfEntries; ii++){
         int temp = buffer.front();
         buffer.pop();
 
-        printf(" %i ", temp);
+        os << temp << " ";
+        printf("%i\n", temp);
 
         buffer.push(temp);
       }
 
+      pthread_mutex_unlock( &buffer_mutex );
+
       // Release mutex
       //pthread_mutex_unlock( &buffer_mutex );
 
-      printf("]\n");
+      os << "]\n";
+
+      string s = os.str();
+
+      return s;
     }
 
     void addItem(int item){
@@ -96,6 +112,8 @@ class CustomBuffer: public std::queue<int> {
       if(!bufferIsFull()){
         // Obtain lock
         pthread_mutex_lock( &buffer_mutex );
+
+        printf("Adding %i\n", item);
 
         // Critical section
         buffer.push(item);
@@ -159,6 +177,7 @@ int main(int argc, char const *argv[]) {
 
   // Initialize mutex
   pthread_mutex_init(&buffer_mutex, NULL);
+  pthread_mutex_init(&print_mutex, NULL);
 
   cout << "Starting Threads..." << endl;
   printf("\n");
@@ -170,9 +189,9 @@ int main(int argc, char const *argv[]) {
   }
 
   // Create faulty producer threads
-  for (int jj = numberOfProducers; jj < numberOfFaulties + numberOfProducers; jj++) {
-    pthread_create(&faultiers[jj], NULL, *faultyProducerFunction, new int(jj));
-  }
+  // for (int jj = numberOfProducers; jj < numberOfFaulties + numberOfProducers; jj++) {
+  //   pthread_create(&faultiers[jj], NULL, *faultyProducerFunction, new int(jj));
+  // }
 
   // Create consumers
   for(int jj = numberOfProducers + numberOfFaulties; jj < numberOfConsumers + numberOfFaulties + numberOfProducers; jj++) {
@@ -245,12 +264,16 @@ void *producerFunction(void *ptr){
   // Create and add the correct number of items to
   // the buffer.
   for(int ii = 0; ii < itemsPerProducer; ii++){
+    ostringstream os;
 
     // Generate prime number
     int primeNumber = getPrimeNumber();
 
     // Add to buffer when possible
     bool done = false;
+
+
+
     while(!done){
       // Busy wait for when buffer is not full
 
@@ -261,12 +284,22 @@ void *producerFunction(void *ptr){
         buffer.addItem(primeNumber);
 
         // Now print that we have added it
-        printf("PRODUCER %i writes %i/%i   %i: ", id, (ii + 1) , itemsPerProducer, primeNumber);
-        buffer.printBuffer();
+        os << "PRODUCER " << id << " writes " << (ii + 1) << "/" << itemsPerProducer << "   " << primeNumber;
+        string output = os.str();
+        string bufferOutput = buffer.printBuffer();
+
+        output = output + bufferOutput;
+
+        pthread_mutex_lock( &print_mutex );
+        printf("%s", output.c_str());
+        pthread_mutex_unlock( &print_mutex );
 
         done = true;
       } else {
         done = false;
+        //pthread_mutex_lock( &print_mutex );
+        //printf("PRODUCER %i: Buffer is full, busy waiting till there is an empty slot\n", id);
+        //pthread_mutex_unlock( &print_mutex );
       }
     }
   }
@@ -298,9 +331,7 @@ void *faultyProducerFunction(void *ptr){
       } else {
         doneMakingNumber = false;
       }
-
     }
-
 
     // Add to buffer when possible
     bool done = false;
@@ -313,9 +344,13 @@ void *faultyProducerFunction(void *ptr){
         // (buffer handles the mutexes for us)
         buffer.addItem(number);
 
+        cout << "Add from PR*D*C*R\n";
+
         // Now print that we have added it
+        pthread_mutex_lock( &print_mutex );
         printf("PR*D*C*R %i writes %i/%i   %i: ", id, (ii + 1) , itemsPerProducer, number);
         buffer.printBuffer();
+        pthread_mutex_unlock( &print_mutex );
 
         done = true;
       } else {
@@ -374,9 +409,9 @@ void *consumerFunction(void *ptr){
         bool isPrime = isIntegerPrime(newItem);
 
         if(isPrime){
-          printf("Consumer thread: %i is prime!\n", item);
+          //printf("Consumer thread: %i is prime!\n", item);
         } else {
-          printf("Consumer thread: %i is not prime.\n", item);
+          //printf("Consumer thread: %i is not prime.\n", item);
         }
 
       } else {
