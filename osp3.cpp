@@ -134,6 +134,8 @@ class CustomBuffer: public std::queue<int> {
         buffer.pop();
         pthread_mutex_unlock( &buffer_mutex );
 
+        currentNumberOfEntries--;
+
         return poppedItem;
       } else {
         cout << "Error removing item: buffer empty!\n";
@@ -271,8 +273,6 @@ void *producerFunction(void *ptr){
 
     // Add to buffer when possible
     bool done = false;
-
-
 
     while(!done){
       // Busy wait for when buffer is not full
